@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f0f0f">
+<title>Xendz</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+:root{--bg:#0f0f0f;--surf:#1a1a1a;--surf2:#242424;--border:#2e2e2e;--text:#f0f0f0;--muted:#555;--muted2:#888;--blue:#4a9eff;--green:#3dd68c;--amber:#f5a623;--purple:#b06cff;--red:#ff5b5b;--r:16px;--rs:10px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overscroll-behavior:none}
+.screen{display:none;flex-direction:column;min-height:100vh;max-width:430px;margin:0 auto}
+.screen.active{display:flex}
+.overlay{display:none;position:fixed;inset:0;z-index:50;flex-direction:column;background:var(--bg);max-width:430px;margin:0 auto;overflow-y:auto}
+.overlay.active{display:flex}
+
+/* PIN */
+#pinScreen{align-items:center;justify-content:center;padding:40px 24px;text-align:center}
+.pin-logo{font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.15em;color:var(--muted);margin-bottom:48px}
+.pin-title{font-size:30px;font-weight:600;letter-spacing:-.02em;margin-bottom:6px}
+.pin-sub{font-size:14px;color:var(--muted2);margin-bottom:36px;font-weight:300}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:40px}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--surf2);border:1.5px solid var(--border);transition:all .15s}
+.pin-dot.filled{background:var(--text);border-color:var(--text)}
+.pin-dot.err{background:var(--red);border-color:var(--red)}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:280px}
+.key{background:var(--surf);border:1.5px solid var(--border);border-radius:var(--r);padding:18px;font-size:22px;font-weight:500;cursor:pointer;transition:all .1s;font-family:'DM Mono',monospace;color:var(--text)}
+.key:active{transform:scale(.93);background:var(--surf2)}
+.key.del{font-size:18px;color:var(--muted2)}
+.key.emp{background:transparent;border-color:transparent;cursor:default}
+.pin-err{font-size:13px;color:var(--red);margin-top:16px;height:18px}
+
+/* LAYOUT */
+.wrap{flex:1;display:flex;flex-direction:column;padding-bottom:40px;overflow-y:auto}
+.app-hdr{padding:52px 24px 16px;display:flex;align-items:center;justify-content:space-between}
+.app-logo{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.user-chip{display:flex;align-items:center;gap:7px;background:var(--surf);border:1px solid var(--border);padding:5px 10px 5px 7px;border-radius:20px;cursor:pointer}
+.avatar{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600}
+.uname{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted2)}
+.title-block{padding:0 24px 24px}
+.title-block h1{font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1.1;margin-bottom:4px}
+.title-block p{font-size:13px;color:var(--muted2);font-weight:300}
+.section{padding:0 24px;margin-bottom:24px}
+.sec-label{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
+.section.locked{opacity:.3;pointer-events:none}
+.section{transition:opacity .2s}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats-row.two{grid-template-columns:1fr 1fr}
+.stat-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--rs);padding:12px}
+.stat-val{font-family:'DM Mono',monospace;font-size:17px;font-weight:500;color:var(--text);line-height:1;margin-bottom:4px}
+.stat-lbl{font-size:10px;color:var(--muted)}
+
+/* HISTORIAL */
+.hist-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.hist-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border)}
+.hist-row:last-child{border-bottom:none}
+.hist-detail{font-size:11px;color:var(--muted);margin-top:2px}
+.hist-pay{font-family:'DM Mono',monospace;font-weight:500;color:var(--green);font-size:13px}
+.hist-empty{padding:20px;text-align:center;font-size:13px;color:var(--muted)}
+
+/* GUIAS PENDIENTES */
+.guia-card{background:var(--surf);border:1.5px solid var(--amber);border-radius:var(--r);padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s}
+.guia-card:active{transform:scale(.98)}
+.guia-foto{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--surf2);flex-shrink:0}
+.guia-foto-placeholder{width:56px;height:56px;border-radius:8px;background:var(--surf2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.guia-info{flex:1}
+.guia-ciudad{font-size:13px;font-weight:600;color:var(--amber)}
+.guia-fecha{font-size:11px;color:var(--muted2);margin-top:2px}
+.guia-cajas{font-size:12px;color:var(--text);margin-top:2px}
+.guia-arrow{font-size:18px;color:var(--amber)}
+.guia-empty{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:center;font-size:13px;color:var(--muted)}
+
+/* COUNTERS */
+.dual-counter{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.dual-row{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.dual-row:last-child{border-bottom:none}
+.dual-city{font-family:'DM Mono',monospace;font-size:15px;font-weight:500}
+.dual-ctrl{display:flex;align-items:center;gap:14px}
+.cnt-btn{width:36px;height:36px;border-radius:50%;background:var(--surf2);border:1px solid var(--border);color:var(--text);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;line-height:1}
+.cnt-btn:active{transform:scale(.88)}
+.cnt-num{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;min-width:32px;text-align:center}
+.single-counter{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;align-items:center;justify-content:space-between}
+.cnt-big{font-family:'DM Mono',monospace;font-size:56px;font-weight:500;line-height:1}
+.cnt-btn-lg{width:52px;height:52px;border-radius:50%;background:var(--surf2);border:1.5px solid var(--border);color:var(--text);font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;line-height:1}
+.cnt-btn-lg:active{transform:scale(.9)}
+
+/* FOTO */
+.foto-btn-wrap{position:relative}
+.foto-btn{background:var(--surf);border:1.5px dashed var(--border);border-radius:var(--r);height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .15s;overflow:hidden}
+.foto-btn:active{transform:scale(.98)}
+.foto-btn.has-foto{border-style:solid;border-color:var(--green)}
+.foto-btn img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:calc(var(--r) - 2px)}
+.foto-icon{font-size:24px;position:relative;z-index:1}
+.foto-label{font-size:11px;color:var(--muted);position:relative;z-index:1}
+.foto-check{position:absolute;top:8px;right:8px;background:var(--green);width:22px;height:22px;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:12px;z-index:2}
+.foto-btn.has-foto .foto-check{display:flex}
+.foto-btn.has-foto .foto-icon,.foto-btn.has-foto .foto-label{opacity:0}
+.foto-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* COSTO INPUT */
+.costo-field{background:var(--surf);border:1.5px solid var(--border);border-radius:var(--rs);padding:14px 16px;display:flex;align-items:center;gap:8px;transition:border-color .15s}
+.costo-field:focus-within{border-color:var(--blue)}
+.costo-prefix{font-family:'DM Mono',monospace;font-size:18px;color:var(--muted)}
+.costo-input{background:transparent;border:none;outline:none;font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--text);width:100%;min-width:0}
+.costo-input::placeholder{color:var(--muted)}
+
+/* TIPO */
+.tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tipo-btn{background:var(--surf);border:1.5px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:all .15s;text-align:left}
+.tipo-btn:active{transform:scale(.97)}
+.tipo-btn.sel-mm{border-color:var(--blue);background:rgba(74,158,255,.07)}
+.tipo-btn.sel-li{border-color:var(--amber);background:rgba(245,166,35,.07)}
+.tipo-icon{font-size:18px;margin-bottom:6px;display:block}
+.tipo-name{font-size:13px;font-weight:600;color:var(--text)}
+.tipo-desc{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* PAGO PREVIEW */
+.pago-row{background:var(--surf);border:1px solid var(--border);border-radius:var(--rs);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.pago-lbl{font-size:12px;color:var(--muted)}
+.pago-val{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--green)}
+
+/* FIRMA */
+.sig-wrap{position:relative;background:var(--surf);border:1.5px dashed var(--border);border-radius:var(--r);overflow:hidden}
+.sig-wrap.signed{border-style:solid;border-color:var(--blue)}
+.sig-canvas{display:block;width:100%;touch-action:none}
+.sig-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);pointer-events:none;transition:opacity .2s}
+.sig-wrap.signed .sig-hint{opacity:0}
+.sig-clear{position:absolute;top:8px;right:8px;background:var(--surf2);border:1px solid var(--border);color:var(--muted2);padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer}
+
+/* SUBMIT */
+.submit-wrap{padding:0 24px;margin-top:4px}
+.sbtn{width:100%;padding:17px;border-radius:var(--r);border:none;background:var(--text);color:var(--bg);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.sbtn:active{transform:scale(.98);opacity:.9}
+.sbtn:disabled{background:var(--surf2);color:var(--muted);cursor:not-allowed;transform:none}
+.spin{width:17px;height:17px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--bg);border-radius:50%;animation:sp .6s linear infinite;display:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* FINALIZAR section label */
+.sec-ciudad-lbl{background:var(--surf);border-left:3px solid var(--blue);padding:10px 14px;border-radius:0 var(--rs) var(--rs) 0;margin-bottom:12px}
+.sec-ciudad-lbl.mty{border-left-color:var(--green)}
+.sec-ciudad-title{font-size:13px;font-weight:600;color:var(--text)}
+.sec-ciudad-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* SUCCESS */
+#sucOverlay{align-items:center;justify-content:center;padding:40px 24px;text-align:center}
+.suc-icon{width:72px;height:72px;border-radius:50%;background:rgba(61,214,140,.1);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:20px}
+.suc-title{font-size:26px;font-weight:600;letter-spacing:-.02em;margin-bottom:6px}
+.suc-sub{font-size:13px;color:var(--muted2);margin-bottom:28px;line-height:1.6}
+.suc-detail{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;width:100%;max-width:300px;margin-bottom:28px;text-align:left}
+.suc-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border)}
+.suc-row:last-child{border-bottom:none}
+.suc-row span:first-child{color:var(--muted)}
+.suc-row span:last-child{font-family:'DM Mono',monospace;font-weight:500}
+.nuevo-btn{background:var(--surf);border:1.5px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;padding:14px 36px;cursor:pointer}
+.nuevo-btn:active{transform:scale(.97)}
+
+/* CONFIRMAR OVERLAY */
+#confirmarOverlay{padding-bottom:40px}
+.conf-hdr{padding:52px 24px 20px;display:flex;align-items:center;gap:12px}
+.back-btn{width:36px;height:36px;border-radius:50%;background:var(--surf);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;flex-shrink:0}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#1e1010;border:1px solid var(--red);color:#ff9a9a;padding:11px 18px;border-radius:40px;font-size:12px;white-space:nowrap;transition:transform .3s;z-index:100;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div class="screen active" id="pinScreen">
+  <div class="pin-logo">Xendz Express</div>
+  <div class="pin-title">Bienvenido</div>
+  <div class="pin-sub">Ingresa tu PIN de 4 dígitos</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="keypad">
+    <button class="key" onclick="pk('1')">1</button><button class="key" onclick="pk('2')">2</button><button class="key" onclick="pk('3')">3</button>
+    <button class="key" onclick="pk('4')">4</button><button class="key" onclick="pk('5')">5</button><button class="key" onclick="pk('6')">6</button>
+    <button class="key" onclick="pk('7')">7</button><button class="key" onclick="pk('8')">8</button><button class="key" onclick="pk('9')">9</button>
+    <button class="key emp"></button><button class="key" onclick="pk('0')">0</button><button class="key del" onclick="dk()">⌫</button>
+  </div>
+  <div class="pin-err" id="pinErr"></div>
+</div>
+
+<!-- CDMX MAIN -->
+<div class="screen" id="cdmxScreen">
+  <div class="wrap">
+    <div class="app-hdr">
+      <span class="app-logo">Xendz Express</span>
+      <div class="user-chip" onclick="logout()">
+        <div class="avatar" id="cdmxAv"></div>
+        <span class="uname" id="cdmxUn"></span>
+      </div>
+    </div>
+    <div class="title-block">
+      <h1 id="cdmxH1">Hola</h1>
+      <p id="cdmxSub"></p>
+    </div>
+    <div class="section">
+      <div class="sec-label">Tu semana</div>
+      <div class="stats-row" id="cdmxStats">
+        <div class="stat-card"><div class="stat-val">—</div><div class="stat-lbl">Pago semana</div></div>
+        <div class="stat-card"><div class="stat-val">—</div><div class="stat-lbl">Pago hoy</div></div>
+        <div class="stat-card"><div class="stat-val">—</div><div class="stat-lbl">Viajes</div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="sec-label">Últimos días</div>
+      <div class="hist-card" id="cdmxHist"><div class="hist-empty">Cargando...</div></div>
+    </div>
+    <div class="section">
+      <div class="sec-label">Registrar viaje — cajas</div>
+      <div class="dual-counter">
+        <div class="dual-row">
+          <span class="dual-city" style="color:var(--blue)">GDL</span>
+          <div class="dual-ctrl">
+            <button class="cnt-btn" onclick="cc('gdl',-1)">−</button>
+            <span class="cnt-num" id="gdlN">0</span>
+            <button class="cnt-btn" onclick="cc('gdl',1)">+</button>
+          </div>
+        </div>
+        <div class="dual-row">
+          <span class="dual-city" style="color:var(--green)">MTY</span>
+          <div class="dual-ctrl">
+            <button class="cnt-btn" onclick="cc('mty',-1)">−</button>
+            <span class="cnt-num" id="mtyN">0</span>
+            <button class="cnt-btn" onclick="cc('mty',1)">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="pago-row" id="cdmxPago" style="display:none">
+        <span class="pago-lbl">Tu pago por este viaje</span>
+        <span class="pago-val" id="cdmxPagoV">$0</span>
+      </div>
+    </div>
+    <div class="section">
+      <div class="sec-label">Foto de recolección en CUBBO</div>
+      <input type="file" id="inFotoRec" accept="image/*" capture="environment" style="display:none" onchange="handleFoto(this,'rec')">
+      <div class="foto-btn" id="btnFotoRec" onclick="document.getElementById('inFotoRec').click()">
+        <img id="imgFotoRec" style="display:none">
+        <div class="foto-check">✓</div>
+        <span class="foto-icon">📷</span>
+        <span class="foto-label">Tomar foto (opcional pero recomendado)</span>
+      </div>
+    </div>
+    <div class="submit-wrap">
+      <button class="sbtn" id="cdmxBtn" onclick="enviarCDMX()" disabled>
+        <div class="spin" id="cdmxSpin"></div>
+        <span id="cdmxBtnT">Ingresa las cajas</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CDMX FINALIZAR -->
+<div class="screen" id="finalizarScreen">
+  <div class="wrap">
+    <div class="app-hdr">
+      <span class="app-logo">Xendz Express</span>
+      <div class="user-chip" onclick="logout()">
+        <div class="avatar" id="finAv"></div>
+        <span class="uname" id="finUn"></span>
+      </div>
+    </div>
+    <div class="title-block">
+      <h1>Finalizar servicio</h1>
+      <p>Registra costos y fotos de guías</p>
+    </div>
+
+    <!-- GDL section -->
+    <div class="section" id="finGDLSec">
+      <div class="sec-ciudad-lbl">
+        <div class="sec-ciudad-title">Autoexpress — GDL</div>
+        <div class="sec-ciudad-sub" id="finGDLCajas"></div>
+      </div>
+      <div class="costo-field" style="margin-bottom:10px">
+        <span class="costo-prefix">$</span>
+        <input class="costo-input" type="number" inputmode="decimal" placeholder="0.00" id="costoGDL" oninput="updFin()">
+      </div>
+      <input type="file" id="inGuiaGDL" accept="image/*" capture="environment" style="display:none" onchange="handleFoto(this,'guiaGDL')">
+      <div class="foto-btn" id="btnGuiaGDL" onclick="document.getElementById('inGuiaGDL').click()">
+        <img id="imgGuiaGDL" style="display:none">
+        <div class="foto-check">✓</div>
+        <span class="foto-icon">🧾</span>
+        <span class="foto-label">Foto de la guía Autoexpress</span>
+      </div>
+    </div>
+
+    <!-- MTY section -->
+    <div class="section" id="finMTYSec">
+      <div class="sec-ciudad-lbl mty">
+        <div class="sec-ciudad-title">Travisa — MTY</div>
+        <div class="sec-ciudad-sub" id="finMTYCajas"></div>
+      </div>
+      <div class="costo-field" style="margin-bottom:10px">
+        <span class="costo-prefix">$</span>
+        <input class="costo-input" type="number" inputmode="decimal" placeholder="0.00" id="costoMTY" oninput="updFin()">
+      </div>
+      <input type="file" id="inGuiaMTY" accept="image/*" capture="environment" style="display:none" onchange="handleFoto(this,'guiaMTY')">
+      <div class="foto-btn" id="btnGuiaMTY" onclick="document.getElementById('inGuiaMTY').click()">
+        <img id="imgGuiaMTY" style="display:none">
+        <div class="foto-check">✓</div>
+        <span class="foto-icon">🧾</span>
+        <span class="foto-label">Foto de la guía Travisa</span>
+      </div>
+    </div>
+
+    <div class="submit-wrap">
+      <button class="sbtn" id="finBtn" onclick="enviarFinalizar()" disabled>
+        <div class="spin" id="finSpin"></div>
+        <span id="finBtnT">Ingresa al menos un costo</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CIUDAD MAIN -->
+<div class="screen" id="ciudadScreen">
+  <div class="wrap">
+    <div class="app-hdr">
+      <span class="app-logo">Xendz Express</span>
+      <div class="user-chip" onclick="logout()">
+        <div class="avatar" id="ciudadAv"></div>
+        <span class="uname" id="ciudadUn"></span>
+      </div>
+    </div>
+    <div class="title-block">
+      <h1 id="ciudadH1">Hola</h1>
+      <p id="ciudadSub"></p>
+    </div>
+    <div class="section">
+      <div class="sec-label">Tu semana</div>
+      <div class="stats-row two" id="ciudadStats">
+        <div class="stat-card"><div class="stat-val">—</div><div class="stat-lbl">Pago semana</div></div>
+        <div class="stat-card"><div class="stat-val">—</div><div class="stat-lbl">Servicios</div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="sec-label">Guías pendientes de recolectar</div>
+      <div id="guiasList"><div class="guia-empty">Cargando...</div></div>
+    </div>
+    <div class="section">
+      <div class="sec-label">Últimos días</div>
+      <div class="hist-card" id="ciudadHist"><div class="hist-empty">Cargando...</div></div>
+    </div>
+    <div class="section">
+      <div class="sec-label">Registrar servicio</div>
+      <div class="tipo-grid">
+        <button class="tipo-btn" id="btnMM" onclick="selTipo('MM')">
+          <span class="tipo-icon">📦</span>
+          <div class="tipo-name">Middle Mile</div>
+          <div class="tipo-desc" id="mmDesc">Cajas al ocurre</div>
+        </button>
+        <button class="tipo-btn" id="btnLI" onclick="selTipo('LI')">
+          <span class="tipo-icon">↩</span>
+          <div class="tipo-name">Log. Inversa</div>
+          <div class="tipo-desc">Retorno a CDMX</div>
+        </button>
+      </div>
+    </div>
+    <div class="section locked" id="secCajas">
+      <div class="sec-label">Número de cajas</div>
+      <div class="single-counter">
+        <button class="cnt-btn-lg" onclick="ccCiudad(-1)">−</button>
+        <div style="text-align:center">
+          <span class="cnt-big" id="ciudadCajasN">0</span>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.08em;margin-top:4px">CAJAS</div>
+        </div>
+        <button class="cnt-btn-lg" onclick="ccCiudad(1)">+</button>
+      </div>
+      <div class="pago-row" id="ciudadPago" style="display:none">
+        <span class="pago-lbl">Tu pago por este servicio</span>
+        <span class="pago-val" id="ciudadPagoV">$0</span>
+      </div>
+    </div>
+    <div class="section locked" id="secFotoCiudad">
+      <div class="sec-label">Foto de evidencia</div>
+      <input type="file" id="inFotoCiudad" accept="image/*" capture="environment" style="display:none" onchange="handleFoto(this,'ciudad')">
+      <div class="foto-btn" id="btnFotoCiudad" onclick="document.getElementById('inFotoCiudad').click()">
+        <img id="imgFotoCiudad" style="display:none">
+        <div class="foto-check">✓</div>
+        <span class="foto-icon">📷</span>
+        <span class="foto-label">Foto del servicio</span>
+      </div>
+    </div>
+    <div class="submit-wrap">
+      <button class="sbtn" id="ciudadBtn" onclick="enviarCiudad()" disabled>
+        <div class="spin" id="ciudadSpin"></div>
+        <span id="ciudadBtnT">Selecciona el tipo</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRMAR RECOLECCION OVERLAY -->
+<div class="overlay" id="confirmarOverlay">
+  <div class="conf-hdr">
+    <div class="back-btn" onclick="cerrarConfirmar()">←</div>
+    <div>
+      <div style="font-size:16px;font-weight:600">Confirmar recolección</div>
+      <div style="font-size:12px;color:var(--muted2)" id="confSub"></div>
+    </div>
+  </div>
+  <div style="padding:0 24px;flex:1">
+    <div style="background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:20px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em">Guía a recolectar</div>
+      <div id="confGuiaFoto" style="margin-bottom:8px"></div>
+      <div style="font-size:13px;color:var(--text)" id="confGuiaInfo"></div>
+    </div>
+    <div style="margin-bottom:20px">
+      <div class="sec-label">Foto de entrega en bodega CUBBO</div>
+      <input type="file" id="inFotoEntrega" accept="image/*" capture="environment" style="display:none" onchange="handleFoto(this,'entrega')">
+      <div class="foto-btn" id="btnFotoEntrega" onclick="document.getElementById('inFotoEntrega').click()">
+        <img id="imgFotoEntrega" style="display:none">
+        <div class="foto-check">✓</div>
+        <span class="foto-icon">📷</span>
+        <span class="foto-label">Foto de la entrega (recomendado)</span>
+      </div>
+    </div>
+    <div style="margin-bottom:24px">
+      <div class="sec-label">Firma de recibido</div>
+      <div class="sig-wrap" id="sigWrap">
+        <canvas class="sig-canvas" id="sigCanvas" height="120"></canvas>
+        <div class="sig-hint">Firmar aquí</div>
+        <button class="sig-clear" onclick="clearSig()">Borrar</button>
+      </div>
+    </div>
+  </div>
+  <div class="submit-wrap">
+    <button class="sbtn" id="confBtn" onclick="enviarConfirmar()">
+      <div class="spin" id="confSpin"></div>
+      <span id="confBtnT">Confirmar recolección</span>
+    </button>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div class="overlay" id="sucOverlay">
+  <div class="suc-icon">✓</div>
+  <div class="suc-title" id="sucTitle">¡Listo!</div>
+  <div class="suc-sub" id="sucSub">Guardado correctamente.</div>
+  <div class="suc-detail" id="sucDetail"></div>
+  <button class="nuevo-btn" onclick="resetForm()">Nuevo registro</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbxwlzoCv_maMnEX_wVec145bFNHC4QFMys__rb6jVhGsKuHlfkYphcfxl9mpgxLhs2iVw/exec';
+
+const USERS={
+  '0022':{nombre:'LalaMove',  rol:'cdmx',ini:'TM',bg:'rgba(245,166,35,.15)', fg:'#f5a623'},
+  '1818':{nombre:'Erik Santos',rol:'cdmx',ini:'ES',bg:'rgba(176,108,255,.15)',fg:'#b06cff'},
+  '2341':{nombre:'Jose Luis', rol:'gdl', ini:'JL',bg:'rgba(74,158,255,.15)', fg:'#4a9eff',ciudad:'GDL'},
+  '2026':{nombre:'Rosa Imelda',rol:'mty',ini:'RI',bg:'rgba(61,214,140,.15)', fg:'#3dd68c',ciudad:'MTY'}
+};
+const DIAS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// State
+let pin='',user=null;
+let gdl=0,mty=0,fotoRec=null;
+let costoGDL=0,costoMTY=0,fotoGuiaGDL=null,fotoGuiaMTY=null;
+let cTipo=null,cCajas=0,fotoCiudad=null;
+let guiaActual=null,fotoEntrega=null;
+let sigPad=null,sigSigned=false;
+
+// ===== PIN =====
+function pk(k){if(pin.length>=4)return;pin+=k;dots();if(pin.length===4)setTimeout(checkPin,120)}
+function dk(){if(!pin.length)return;pin=pin.slice(0,-1);dots();document.getElementById('pinErr').textContent=''}
+function dots(){for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.toggle('filled',i<pin.length);d.classList.remove('err')}}
+function checkPin(){
+  const u=USERS[pin];
+  if(u){user=u;login(u);}
+  else{
+    pin='';
+    for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('filled');d.classList.add('err');}
+    document.getElementById('pinErr').textContent='PIN incorrecto. Inténtalo de nuevo.';
+    setTimeout(()=>{for(let i=0;i<4;i++)document.getElementById('d'+i).classList.remove('err');},600);
+  }
+}
+function logout(){
+  pin='';user=null;
+  resetAllState();
+  showScreen('pinScreen');
+  dots();
+}
+
+// ===== LOGIN =====
+function login(u){
+  const now=new Date();
+  const ds=DIAS[now.getDay()]+' '+now.getDate()+' '+MESES[now.getMonth()];
+  if(u.rol==='cdmx'){
+    setAvatar('cdmxAv',u);setAvatar('finAv',u);
+    document.getElementById('cdmxUn').textContent=u.nombre.split(' ')[0];
+    document.getElementById('finUn').textContent=u.nombre.split(' ')[0];
+    document.getElementById('cdmxH1').textContent='Hola, '+u.nombre.split(' ')[0];
+    document.getElementById('cdmxSub').textContent=ds+' · Flete CDMX';
+    showScreen('cdmxScreen');
+    loadStats('cdmx',u.nombre);
+  }else{
+    setAvatar('ciudadAv',u);
+    document.getElementById('ciudadUn').textContent=u.nombre.split(' ')[0];
+    document.getElementById('ciudadH1').textContent='Hola, '+u.nombre.split(' ')[0];
+    document.getElementById('ciudadSub').textContent=ds+' · Flete '+u.ciudad;
+    document.getElementById('mmDesc').textContent='Cajas a '+u.ciudad;
+    showScreen('ciudadScreen');
+    loadStats('ciudad',u.nombre);
+    loadGuias(u.ciudad);
+  }
+}
+function setAvatar(id,u){const el=document.getElementById(id);el.textContent=u.ini;el.style.background=u.bg;el.style.color=u.fg;}
+
+// ===== SCREENS =====
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));if(id)document.getElementById(id).classList.add('active');}
+function showOverlay(id){document.getElementById(id).classList.add('active');}
+function hideOverlay(id){document.getElementById(id).classList.remove('active');}
+
+// ===== STATS / HISTORIAL =====
+async function loadStats(tipo,proveedor){
+  try{
+    const res=await fetch(API+'?action=stats&proveedor='+encodeURIComponent(proveedor));
+    const d=await res.json();
+    if(tipo==='cdmx') renderStatsCDMX(d);
+    else renderStatsCiudad(d);
+  }catch(e){
+    if(tipo==='cdmx'){document.getElementById('cdmxStats').innerHTML='<div class="stat-card"><div class="stat-val" style="color:var(--muted)">—</div><div class="stat-lbl">Sin conexión</div></div><div class="stat-card"><div class="stat-val" style="color:var(--muted)">—</div><div class="stat-lbl">Pago hoy</div></div><div class="stat-card"><div class="stat-val" style="color:var(--muted)">—</div><div class="stat-lbl">Viajes</div></div>';document.getElementById('cdmxHist').innerHTML='<div class="hist-empty">Sin conexión</div>';}
+    else{document.getElementById('ciudadStats').innerHTML='<div class="stat-card"><div class="stat-val" style="color:var(--muted)">—</div><div class="stat-lbl">Sin conexión</div></div><div class="stat-card"><div class="stat-val" style="color:var(--muted)">—</div><div class="stat-lbl">Servicios</div></div>';document.getElementById('ciudadHist').innerHTML='<div class="hist-empty">Sin conexión</div>';}
+  }
+}
+
+function renderStatsCDMX(d){
+  document.getElementById('cdmxStats').innerHTML=`
+    <div class="stat-card"><div class="stat-val" style="color:var(--green)">$${fmt(d.semana_pago||0)}</div><div class="stat-lbl">Pago semana</div></div>
+    <div class="stat-card"><div class="stat-val">$${fmt(d.hoy_pago||0)}</div><div class="stat-lbl">Pago hoy</div></div>
+    <div class="stat-card"><div class="stat-val">${d.semana_viajes||0}</div><div class="stat-lbl">Viajes</div></div>`;
+  const h=document.getElementById('cdmxHist');
+  h.innerHTML=(d.historial&&d.historial.length)?d.historial.map(r=>`<div class="hist-row"><div><div style="font-size:12px;color:var(--muted2)">${r.fecha}</div><div class="hist-detail">${r.cajas} cajas · ${r.viajes} viaje${r.viajes>1?'s':''}</div></div><span class="hist-pay">$${fmt(r.pago)}</span></div>`).join(''):'<div class="hist-empty">Sin registros esta semana</div>';
+}
+
+function renderStatsCiudad(d){
+  document.getElementById('ciudadStats').innerHTML=`
+    <div class="stat-card"><div class="stat-val" style="color:var(--green)">$${fmt(d.semana_pago||0)}</div><div class="stat-lbl">Pago semana</div></div>
+    <div class="stat-card"><div class="stat-val">${d.semana_servicios||0}</div><div class="stat-lbl">Servicios</div></div>`;
+  const h=document.getElementById('ciudadHist');
+  h.innerHTML=(d.historial&&d.historial.length)?d.historial.map(r=>`<div class="hist-row"><div><div style="font-size:12px;color:var(--muted2)">${r.fecha}</div><div class="hist-detail">${r.cajas} cajas${r.tipo?' · '+r.tipo:''}</div></div><span class="hist-pay">$${fmt(r.pago)}</span></div>`).join(''):'<div class="hist-empty">Sin registros esta semana</div>';
+}
+
+// ===== GUÍAS PENDIENTES =====
+async function loadGuias(ciudad){
+  const el=document.getElementById('guiasList');
+  el.innerHTML='<div class="guia-empty">Cargando...</div>';
+  try{
+    const res=await fetch(API+'?action=guias&ciudad='+ciudad);
+    const d=await res.json();
+    if(!d.guias||!d.guias.length){el.innerHTML='<div class="guia-empty">Sin guías pendientes — al día 🎉</div>';return;}
+    el.innerHTML=d.guias.map(g=>`
+      <div class="guia-card" onclick='abrirConfirmar(${JSON.stringify(g)})'>
+        ${g.foto_guia?`<img class="guia-foto" src="${g.foto_guia}" onerror="this.style.display='none'">`:`<div class="guia-foto-placeholder">🧾</div>`}
+        <div class="guia-info">
+          <div class="guia-ciudad">${ciudad}</div>
+          <div class="guia-fecha">${g.fecha}</div>
+          <div class="guia-cajas">${g.cajas} caja${g.cajas>1?'s':''} · $${fmt(g.costo_proveedor||0)}</div>
+        </div>
+        <div class="guia-arrow">→</div>
+      </div>`).join('');
+  }catch(e){el.innerHTML='<div class="guia-empty">Error al cargar guías</div>';}
+}
+
+// ===== CDMX FORM =====
+function cc(dest,delta){
+  if(dest==='gdl')gdl=Math.max(0,Math.min(32,gdl+delta));
+  else mty=Math.max(0,Math.min(32,mty+delta));
+  document.getElementById('gdlN').textContent=gdl;
+  document.getElementById('mtyN').textContent=mty;
+  const tot=gdl+mty,pago=calcCDMX(tot);
+  const pv=document.getElementById('cdmxPago');
+  if(tot>0){pv.style.display='flex';document.getElementById('cdmxPagoV').textContent='$'+fmt(pago);}
+  else pv.style.display='none';
+  const btn=document.getElementById('cdmxBtn');const t=document.getElementById('cdmxBtnT');
+  btn.disabled=tot===0;
+  t.textContent=tot>0?'Registrar · GDL:'+gdl+' MTY:'+mty:'Ingresa las cajas';
+}
+function calcCDMX(n){if(!n)return 0;if(n<=11)return 700;if(n<=15)return 800;if(n<=16)return 900;return 1600;}
+
+async function enviarCDMX(){
+  const tot=gdl+mty;if(!tot)return;
+  setLoad('cdmx',true);
+  try{
+    let filas=0;
+    if(gdl>0){
+      const r=await apiPost({action:'registro',ciudad:'GDL',concepto:'MM',cantidad:gdl,incluir_cdmx:true,proveedor_cdmx:user.nombre,foto_recoleccion:fotoRec,fecha:new Date().toISOString()});
+      if(!r.ok)throw new Error(r.error);filas+=r.filas_escritas;
+    }
+    if(mty>0){
+      const r=await apiPost({action:'registro',ciudad:'MTY',concepto:'MM',cantidad:mty,incluir_cdmx:gdl===0,proveedor_cdmx:user.nombre,foto_recoleccion:gdl===0?fotoRec:null,fecha:new Date().toISOString()});
+      if(!r.ok)throw new Error(r.error);filas+=r.filas_escritas;
+    }
+    // Transition to finalizar
+    setLoad('cdmx',false);
+    prepFinalizar();
+    showScreen('finalizarScreen');
+  }catch(e){toast('Error al enviar. Intenta de nuevo.');setLoad('cdmx',false);}
+}
+
+// ===== FINALIZAR =====
+function prepFinalizar(){
+  const gdlSec=document.getElementById('finGDLSec');
+  const mtySec=document.getElementById('finMTYSec');
+  gdlSec.style.display=gdl>0?'block':'none';
+  mtySec.style.display=mty>0?'block':'none';
+  if(gdl>0)document.getElementById('finGDLCajas').textContent=gdl+' caja'+(gdl>1?'s':'')+' · Autoexpress';
+  if(mty>0)document.getElementById('finMTYCajas').textContent=mty+' caja'+(mty>1?'s':'')+' · Travisa';
+  updFin();
+}
+
+function updFin(){
+  const cGDL=parseFloat(document.getElementById('costoGDL').value)||0;
+  const cMTY=parseFloat(document.getElementById('costoMTY').value)||0;
+  const btn=document.getElementById('finBtn');const t=document.getElementById('finBtnT');
+  const needsGDL=gdl>0,needsMTY=mty>0;
+  const hasGDL=!needsGDL||(needsGDL&&cGDL>0);
+  const hasMTY=!needsMTY||(needsMTY&&cMTY>0);
+  const ok=hasGDL&&hasMTY;
+  btn.disabled=!ok;
+  t.textContent=ok?'Finalizar y enviar guías':'Ingresa el costo de las fleteras';
+}
+
+async function enviarFinalizar(){
+  const cGDL=parseFloat(document.getElementById('costoGDL').value)||0;
+  const cMTY=parseFloat(document.getElementById('costoMTY').value)||0;
+  setLoad('fin',true);
+  try{
+    const guias=[];
+    if(gdl>0)guias.push({ciudad:'GDL',cajas:gdl,costo:cGDL,foto_guia:fotoGuiaGDL});
+    if(mty>0)guias.push({ciudad:'MTY',cajas:mty,costo:cMTY,foto_guia:fotoGuiaMTY});
+    const r=await apiPost({action:'finalizar',proveedor_cdmx:user.nombre,guias,fecha:new Date().toISOString()});
+    if(!r.ok)throw new Error(r.error);
+    showSuccess('¡Servicio finalizado!','Las guías ya están disponibles para\nJose Luis y Rosa Imelda.',[
+      ['GDL',gdl>0?gdl+' cajas · $'+fmt(cGDL):'—'],
+      ['MTY',mty>0?mty+' cajas · $'+fmt(cMTY):'—'],
+      ['Tu pago','$'+fmt(calcCDMX(gdl+mty))],
+    ]);
+  }catch(e){toast('Error al finalizar. Intenta de nuevo.');setLoad('fin',false);}
+}
+
+// ===== CIUDAD FORM =====
+function selTipo(t){
+  cTipo=t;cCajas=0;
+  document.getElementById('btnMM').className='tipo-btn'+(t==='MM'?' sel-mm':'');
+  document.getElementById('btnLI').className='tipo-btn'+(t==='LI'?' sel-li':'');
+  document.getElementById('secCajas').classList.remove('locked');
+  document.getElementById('ciudadCajasN').textContent='0';
+  document.getElementById('ciudadPago').style.display='none';
+  document.getElementById('secFotoCiudad').classList.remove('locked');
+  updCiudad();
+}
+
+function ccCiudad(delta){
+  const max=cTipo==='LI'?3:32;
+  cCajas=Math.max(0,Math.min(max,cCajas+delta));
+  document.getElementById('ciudadCajasN').textContent=cCajas;
+  const pago=calcCiudad(user.ciudad,cCajas,cTipo);
+  const pv=document.getElementById('ciudadPago');
+  if(cCajas>0&&pago>0){pv.style.display='flex';document.getElementById('ciudadPagoV').textContent='$'+fmt(pago);}
+  else pv.style.display='none';
+  updCiudad();
+}
+function calcCiudad(c,n,t){
+  if(!t||!n)return 0;
+  if(t==='LI')return c==='GDL'?500:450;
+  if(c==='GDL')return n>0?800:0;
+  if(n<=6)return 700;if(n<=10)return 800;return 900;
+}
+
+function updCiudad(){
+  const btn=document.getElementById('ciudadBtn');const t=document.getElementById('ciudadBtnT');
+  const ok=cTipo&&cCajas>0;btn.disabled=!ok;
+  if(ok)t.textContent='Registrar '+cCajas+' caja'+(cCajas>1?'s':'')+' · '+(cTipo==='MM'?'Middle Mile':'Log. Inversa');
+  else if(cTipo)t.textContent='Ingresa las cajas';
+  else t.textContent='Selecciona el tipo';
+}
+
+async function enviarCiudad(){
+  if(!cTipo||!cCajas)return;
+  setLoad('ciudad',true);
+  try{
+    const r=await apiPost({action:'registro',ciudad:user.ciudad,concepto:cTipo,cantidad:cCajas,incluir_cdmx:false,proveedor_ciudad:user.nombre,foto_evidencia:fotoCiudad,fecha:new Date().toISOString()});
+    if(!r.ok)throw new Error(r.error);
+    showSuccess('¡Registrado!','El servicio quedó guardado\ncorrectamente.',[
+      ['Ciudad',user.ciudad],['Tipo',cTipo==='MM'?'Middle Mile':'Log. Inversa'],
+      ['Cajas',cCajas],['Tu pago','$'+fmt(calcCiudad(user.ciudad,cCajas,cTipo))]
+    ]);
+  }catch(e){toast('Error al enviar. Intenta de nuevo.');setLoad('ciudad',false);}
+}
+
+// ===== CONFIRMAR RECOLECCIÓN =====
+function abrirConfirmar(guia){
+  guiaActual=guia;fotoEntrega=null;sigSigned=false;
+  document.getElementById('confSub').textContent=user.ciudad+' · '+guia.fecha+' · '+guia.cajas+' cajas';
+  document.getElementById('confGuiaInfo').textContent=guia.cajas+' caja'+(guia.cajas>1?'s':'')+' · $'+fmt(guia.costo_proveedor||0);
+  const fotoEl=document.getElementById('confGuiaFoto');
+  fotoEl.innerHTML=guia.foto_guia?`<img src="${guia.foto_guia}" style="width:100%;border-radius:8px;max-height:160px;object-fit:cover" onerror="this.style.display='none'">`:'<div style="background:var(--surf2);border-radius:8px;padding:16px;text-align:center;font-size:24px;color:var(--muted)">🧾</div>';
+  // Reset form
+  resetFoto('entrega');
+  showOverlay('confirmarOverlay');
+  setTimeout(initSig,100);
+}
+
+function cerrarConfirmar(){hideOverlay('confirmarOverlay');guiaActual=null;}
+
+function initSig(){
+  const canvas=document.getElementById('sigCanvas');
+  canvas.width=canvas.offsetWidth;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  sigSigned=false;
+  document.getElementById('sigWrap').classList.remove('signed');
+  let drawing=false;
+  const getPos=(e)=>{const r=canvas.getBoundingClientRect();const src=e.touches?e.touches[0]:e;return{x:src.clientX-r.left,y:src.clientY-r.top};};
+  canvas.ontouchstart=(e)=>{e.preventDefault();drawing=true;const p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);};
+  canvas.ontouchmove=(e)=>{e.preventDefault();if(!drawing)return;const p=getPos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle='#4a9eff';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();sigSigned=true;document.getElementById('sigWrap').classList.add('signed');};
+  canvas.ontouchend=()=>{drawing=false;};
+  canvas.onmousedown=(e)=>{drawing=true;const p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);};
+  canvas.onmousemove=(e)=>{if(!drawing)return;const p=getPos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle='#4a9eff';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();sigSigned=true;document.getElementById('sigWrap').classList.add('signed');};
+  canvas.onmouseup=()=>{drawing=false;};
+  sigPad={getDataURL:()=>canvas.toDataURL('image/png'),isEmpty:()=>!sigSigned};
+}
+function clearSig(){if(sigPad){const canvas=document.getElementById('sigCanvas');canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);}sigSigned=false;document.getElementById('sigWrap').classList.remove('signed');}
+
+async function enviarConfirmar(){
+  if(!guiaActual)return;
+  setLoad('conf',true);
+  try{
+    const firma=sigPad&&!sigPad.isEmpty()?sigPad.getDataURL():null;
+    const r=await apiPost({action:'confirmar',guia_id:guiaActual.id,foto_entrega:fotoEntrega,firma,proveedor_ciudad:user.nombre,fecha:new Date().toISOString()});
+    if(!r.ok)throw new Error(r.error);
+    hideOverlay('confirmarOverlay');
+    toast('✓ Recolección confirmada');
+    await loadGuias(user.ciudad);
+    await loadStats('ciudad',user.nombre);
+  }catch(e){toast('Error al confirmar. Intenta de nuevo.');}
+  setLoad('conf',false);
+}
+
+// ===== FOTOS =====
+async function handleFoto(input,key){
+  const file=input.files[0];if(!file)return;
+  const b64=await compressImage(file);
+  if(key==='rec'){fotoRec=b64;updateFotoUI('FotoRec',b64);}
+  else if(key==='guiaGDL'){fotoGuiaGDL=b64;updateFotoUI('GuiaGDL',b64);}
+  else if(key==='guiaMTY'){fotoGuiaMTY=b64;updateFotoUI('GuiaMTY',b64);}
+  else if(key==='ciudad'){fotoCiudad=b64;updateFotoUI('FotoCiudad',b64);}
+  else if(key==='entrega'){fotoEntrega=b64;updateFotoUI('FotoEntrega',b64);}
+}
+
+function updateFotoUI(id,b64){
+  const btn=document.getElementById('btn'+id);
+  const img=document.getElementById('img'+id);
+  btn.classList.add('has-foto');
+  img.src=b64;img.style.display='block';
+}
+
+function resetFoto(key){
+  const map={rec:'FotoRec',guiaGDL:'GuiaGDL',guiaMTY:'GuiaMTY',ciudad:'FotoCiudad',entrega:'FotoEntrega'};
+  const id=map[key];if(!id)return;
+  const btn=document.getElementById('btn'+id);
+  const img=document.getElementById('img'+id);
+  if(btn)btn.classList.remove('has-foto');
+  if(img){img.src='';img.style.display='none';}
+}
+
+async function compressImage(file){
+  return new Promise(resolve=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const MAX=900;let w=img.width,h=img.height;
+        if(w>h&&w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+        else if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',0.72));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ===== SUCCESS =====
+function showSuccess(title,sub,lines){
+  document.getElementById('sucTitle').textContent=title;
+  document.getElementById('sucSub').textContent=sub;
+  document.getElementById('sucDetail').innerHTML=lines.filter(r=>r[1]!=='—').map(r=>`<div class="suc-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
+  showOverlay('sucOverlay');
+}
+
+function resetForm(){
+  hideOverlay('sucOverlay');
+  // Reset CDMX
+  gdl=0;mty=0;fotoRec=null;
+  document.getElementById('gdlN').textContent='0';
+  document.getElementById('mtyN').textContent='0';
+  document.getElementById('cdmxPago').style.display='none';
+  document.getElementById('cdmxBtn').disabled=true;
+  document.getElementById('cdmxBtnT').textContent='Ingresa las cajas';
+  resetFoto('rec');
+  // Reset Finalizar
+  costoGDL=0;costoMTY=0;fotoGuiaGDL=null;fotoGuiaMTY=null;
+  document.getElementById('costoGDL').value='';
+  document.getElementById('costoMTY').value='';
+  resetFoto('guiaGDL');resetFoto('guiaMTY');
+  // Reset Ciudad
+  cTipo=null;cCajas=0;fotoCiudad=null;
+  document.getElementById('btnMM').className='tipo-btn';
+  document.getElementById('btnLI').className='tipo-btn';
+  document.getElementById('ciudadCajasN').textContent='0';
+  document.getElementById('ciudadPago').style.display='none';
+  document.getElementById('ciudadBtn').disabled=true;
+  document.getElementById('ciudadBtnT').textContent='Selecciona el tipo';
+  document.getElementById('secCajas').classList.add('locked');
+  document.getElementById('secFotoCiudad').classList.add('locked');
+  resetFoto('ciudad');
+  // Go back to main screen
+  if(user){
+    if(user.rol==='cdmx'){showScreen('cdmxScreen');loadStats('cdmx',user.nombre);}
+    else{showScreen('ciudadScreen');loadStats('ciudad',user.nombre);loadGuias(user.ciudad);}
+  }
+}
+
+function resetAllState(){gdl=0;mty=0;fotoRec=null;costoGDL=0;costoMTY=0;fotoGuiaGDL=null;fotoGuiaMTY=null;cTipo=null;cCajas=0;fotoCiudad=null;guiaActual=null;fotoEntrega=null;sigSigned=false;}
+
+// ===== HELPERS =====
+function setLoad(id,on){
+  const btn=document.getElementById(id+'Btn');
+  const sp=document.getElementById(id+'Spin');
+  const t=document.getElementById(id+'BtnT');
+  if(btn)btn.disabled=on;
+  if(sp)sp.style.display=on?'block':'none';
+  if(t&&on)t.textContent='Enviando...';
+}
+const DEMO_MODE = window.location.hostname !== 'script.google.com' && !window.location.hostname.includes('github') && !window.location.hostname.includes('netlify');
+
+async function apiPost(data){
+  if(DEMO_MODE){
+    await new Promise(r=>setTimeout(r,800));
+    if(data.action==='finalizar') return {ok:true,guias_creadas:data.guias?.length||1,ids:['demo-id-gdl','demo-id-mty']};
+    if(data.action==='confirmar') return {ok:true,guia_id:data.guia_id};
+    return {ok:true,filas_escritas:3,ciudad:data.ciudad,concepto:data.concepto,cantidad:data.cantidad,cdmx_incluido:data.incluir_cdmx,fecha:new Date().toLocaleDateString('es-MX')};
+  }
+  const res=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(data)});
+  return res.json();
+}
+
+
+
+function renderGuias(d,ciudad){
+  const el=document.getElementById('guiasList');
+  if(!d.guias||!d.guias.length){el.innerHTML='<div class="guia-empty">Sin guías pendientes — al día 🎉</div>';return;}
+  el.innerHTML=d.guias.map(g=>`
+    <div class="guia-card" onclick='abrirConfirmar(${JSON.stringify(g)})'>
+      ${g.foto_guia?`<img class="guia-foto" src="${g.foto_guia}" onerror="this.style.display='none'">`:`<div class="guia-foto-placeholder">🧾</div>`}
+      <div class="guia-info">
+        <div class="guia-ciudad">${ciudad}</div>
+        <div class="guia-fecha">${g.fecha}</div>
+        <div class="guia-cajas">${g.cajas} caja${g.cajas>1?'s':''} · $${fmt(g.costo_proveedor||0)}</div>
+      </div>
+      <div class="guia-arrow">→</div>
+    </div>`).join('');
+}
+function fmt(n){return Math.round(n).toLocaleString('es-MX');}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+</script>
+</body>
+</html>
