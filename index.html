@@ -846,9 +846,9 @@ function setLoad(id,on){
   const t=document.getElementById(id+'BtnT');
   if(btn)btn.disabled=on;
   if(sp)sp.style.display=on?'block':'none';
-  if(t&&on)t.textContent='Enviando...';
+  if(t)t.textContent=on?'Enviando...':(id==='fin'?'Finalizar y enviar guías':id==='conf'?'Confirmar recolección':id==='ciudad'?'Selecciona el tipo':'Ingresa las cajas');
 }
-const DEMO_MODE = window.location.hostname !== 'script.google.com' && !window.location.hostname.includes('github') && !window.location.hostname.includes('netlify');
+const DEMO_MODE = false;
 
 async function apiPost(data){
   if(DEMO_MODE){
