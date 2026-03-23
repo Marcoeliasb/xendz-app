@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f0f0f">
+<title>Xendz Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+:root{--bg:#0f0f0f;--surf:#1a1a1a;--surf2:#242424;--border:#2e2e2e;--text:#f0f0f0;--muted:#555;--muted2:#888;--blue:#4a9eff;--green:#3dd68c;--amber:#f5a623;--purple:#b06cff;--red:#ff5b5b;--r:16px;--rs:10px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overscroll-behavior:none}
+.screen{display:none;flex-direction:column;min-height:100vh;max-width:480px;margin:0 auto}
+.screen.active{display:flex}
+
+/* PIN */
+#pinScreen{align-items:center;justify-content:center;padding:40px 24px;text-align:center}
+.pin-logo{font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.15em;color:var(--muted);margin-bottom:12px}
+.pin-brand{font-size:28px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px}
+.pin-sub2{font-size:13px;color:var(--muted2);margin-bottom:40px;font-weight:300}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:40px}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--surf2);border:1.5px solid var(--border);transition:all .15s}
+.pin-dot.filled{background:var(--text);border-color:var(--text)}
+.pin-dot.err{background:var(--red);border-color:var(--red)}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:280px}
+.key{background:var(--surf);border:1.5px solid var(--border);border-radius:var(--r);padding:18px;font-size:22px;font-weight:500;cursor:pointer;transition:all .1s;font-family:'DM Mono',monospace;color:var(--text)}
+.key:active{transform:scale(.93);background:var(--surf2)}
+.key.del{font-size:18px;color:var(--muted2)}
+.key.emp{background:transparent;border-color:transparent;cursor:default}
+.pin-err{font-size:13px;color:var(--red);margin-top:16px;height:18px}
+
+/* DASHBOARD */
+#dashScreen{background:var(--bg)}
+.dash-wrap{flex:1;overflow-y:auto;padding-bottom:40px}
+.dash-hdr{padding:52px 20px 16px;display:flex;align-items:center;justify-content:space-between}
+.dash-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.logout-btn{font-size:11px;color:var(--muted);background:var(--surf);border:1px solid var(--border);padding:5px 10px;border-radius:20px;cursor:pointer;font-family:'DM Mono',monospace}
+
+/* MES NAV */
+.mes-nav{display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-bottom:20px}
+.mes-arrow{width:36px;height:36px;border-radius:50%;background:var(--surf);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text);transition:all .15s}
+.mes-arrow:active{transform:scale(.9)}
+.mes-arrow:disabled{opacity:.3;cursor:not-allowed}
+.mes-info{text-align:center}
+.mes-nombre{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.mes-anio{font-size:12px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+
+/* KPIs */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px;margin-bottom:8px}
+.kpi-grid.three{grid-template-columns:1fr 1fr 1fr}
+.kpi{background:var(--surf);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px}
+.kpi-lbl{font-size:10px;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase}
+.kpi-val{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;line-height:1}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:4px}
+.kpi.highlight{border-color:var(--green);background:rgba(61,214,140,.05)}
+
+/* SECTION */
+.section{padding:0 20px;margin-bottom:20px}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-title{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+.sec-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace}
+
+/* CARD */
+.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px}
+.card-row:last-child{border-bottom:none}
+.card-label{color:var(--muted2)}
+.card-val{font-family:'DM Mono',monospace;font-weight:500}
+.card-empty{padding:20px;text-align:center;font-size:13px;color:var(--muted)}
+
+/* PROYECCION */
+.proy-card{background:var(--surf);border:1.5px solid var(--amber);border-radius:var(--r);padding:16px;margin-bottom:8px}
+.proy-title{font-size:12px;font-weight:500;color:var(--amber);margin-bottom:12px;font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase}
+.proy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.proy-item{text-align:center}
+.proy-val{font-family:'DM Mono',monospace;font-size:15px;font-weight:500}
+.proy-lbl{font-size:10px;color:var(--muted);margin-top:3px}
+.pbar-wrap{margin-top:4px}
+.pbar-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace}
+.pbar{height:4px;background:var(--surf2);border-radius:2px}
+.pbar-fill{height:100%;border-radius:2px;background:var(--amber);transition:width .5s}
+
+/* CHART */
+.chart-wrap{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative}
+.chart-canvas-wrap{position:relative;height:160px;margin-top:10px}
+
+/* COSTOS BREAKDOWN */
+.costo-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border)}
+.costo-row:last-child{border-bottom:none}
+.costo-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.costo-info{flex:1}
+.costo-nombre{font-size:12px;color:var(--text)}
+.costo-pct{font-size:10px;color:var(--muted);margin-top:1px}
+.costo-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:500}
+
+/* PROVEEDORES */
+.prov-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)}
+.prov-row:last-child{border-bottom:none}
+.prov-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;margin-right:10px}
+.prov-info{flex:1}
+.prov-nombre{font-size:12px;color:var(--text);font-weight:500}
+.prov-tipo{font-size:10px;color:var(--muted);margin-top:1px}
+.prov-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--amber)}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted);font-size:13px;gap:8px}
+.loading-spin{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--muted);border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div class="screen active" id="pinScreen">
+  <div class="pin-logo">Xendz Express</div>
+  <div class="pin-brand">Dashboard</div>
+  <div class="pin-sub2">Acceso financiero · Solo administrador</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="keypad">
+    <button class="key" onclick="pk('1')">1</button><button class="key" onclick="pk('2')">2</button><button class="key" onclick="pk('3')">3</button>
+    <button class="key" onclick="pk('4')">4</button><button class="key" onclick="pk('5')">5</button><button class="key" onclick="pk('6')">6</button>
+    <button class="key" onclick="pk('7')">7</button><button class="key" onclick="pk('8')">8</button><button class="key" onclick="pk('9')">9</button>
+    <button class="key emp"></button><button class="key" onclick="pk('0')">0</button><button class="key del" onclick="dk()">⌫</button>
+  </div>
+  <div class="pin-err" id="pinErr"></div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="screen" id="dashScreen">
+  <div class="dash-wrap">
+    <div class="dash-hdr">
+      <span class="dash-title">Xendz · Panel financiero</span>
+      <button class="logout-btn" onclick="logout()">Salir</button>
+    </div>
+
+    <!-- MES NAV -->
+    <div class="mes-nav">
+      <button class="mes-arrow" id="btnPrev" onclick="cambiarMes(-1)">←</button>
+      <div class="mes-info">
+        <div class="mes-nombre" id="mesNombre">—</div>
+        <div class="mes-anio" id="mesAnio">—</div>
+      </div>
+      <button class="mes-arrow" id="btnNext" onclick="cambiarMes(1)">→</button>
+    </div>
+
+    <!-- KPIs principales -->
+    <div class="kpi-grid" style="margin-bottom:8px" id="kpiMain">
+      <div class="loading" style="grid-column:1/-1"><div class="loading-spin"></div>Cargando...</div>
+    </div>
+
+    <!-- Margen y costos -->
+    <div class="kpi-grid three" id="kpiSecundario"></div>
+
+    <!-- PROYECCION (solo mes actual) -->
+    <div class="section" id="secProy" style="display:none">
+      <div class="sec-hdr">
+        <span class="sec-title">Proyección cierre</span>
+        <span class="sec-badge" style="background:rgba(245,166,35,.1);color:var(--amber)" id="proyBadge"></span>
+      </div>
+      <div class="proy-card">
+        <div class="proy-title">Estimado al cierre del mes</div>
+        <div class="proy-grid" id="proyGrid"></div>
+        <div class="pbar-wrap">
+          <div class="pbar-lbl">
+            <span id="proyDiasLabel"></span>
+            <span id="proyPctLabel"></span>
+          </div>
+          <div class="pbar"><div class="pbar-fill" id="proyBar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- P&L desglose -->
+    <div class="section">
+      <div class="sec-hdr"><span class="sec-title">Desglose ingresos</span></div>
+      <div class="card" id="ingrDesglose"></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-hdr"><span class="sec-title">Desglose costos</span></div>
+      <div class="card" id="costosDesglose"></div>
+    </div>
+
+    <!-- CAJAS POR DÍA -->
+    <div class="section">
+      <div class="sec-hdr">
+        <span class="sec-title">Cajas por día</span>
+        <span class="sec-badge" style="background:var(--surf2);color:var(--muted2)" id="cajasTotal"></span>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-canvas-wrap"><canvas id="chartCajas"></canvas></div>
+        <div class="legend" style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--muted)">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#4a9eff;margin-right:4px"></span>GDL</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#3dd68c;margin-right:4px"></span>MTY</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGOS SEMANA -->
+    <div class="section">
+      <div class="sec-hdr">
+        <span class="sec-title">Pagos esta semana</span>
+        <span class="sec-badge" style="background:rgba(245,166,35,.1);color:var(--amber)" id="pagosSemBadge"></span>
+      </div>
+      <div class="card" id="pagosSemana"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const API='https://script.google.com/macros/s/AKfycbxwlzoCv_maMnEX_wVec145bFNHC4QFMys__rb6jVhGsKuHlfkYphcfxl9mpgxLhs2iVw/exec';
+const PIN='2897';
+
+let pin='';
+let mesesDisp=[];
+let mesIdx=0;
+let chartCajas=null;
+
+function pk(k){if(pin.length>=4)return;pin+=k;dots();if(pin.length===4)setTimeout(checkPin,120)}
+function dk(){if(!pin.length)return;pin=pin.slice(0,-1);dots();document.getElementById('pinErr').textContent=''}
+function dots(){for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.toggle('filled',i<pin.length);d.classList.remove('err')}}
+function checkPin(){
+  if(pin===PIN){
+    document.getElementById('pinScreen').classList.remove('active');
+    document.getElementById('dashScreen').classList.add('active');
+    loadDashboard();
+  } else {
+    pin='';
+    for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('filled');d.classList.add('err');}
+    document.getElementById('pinErr').textContent='PIN incorrecto.';
+    setTimeout(()=>{for(let i=0;i<4;i++)document.getElementById('d'+i).classList.remove('err');},600);
+  }
+}
+function logout(){
+  pin='';dots();
+  document.getElementById('dashScreen').classList.remove('active');
+  document.getElementById('pinScreen').classList.add('active');
+}
+
+async function loadDashboard(){
+  const mes=mesesDisp.length>0?mesesDisp[mesIdx]:null;
+  const url=API+'?action=dashboard'+(mes?'&mes='+mes.mes+'&anio='+mes.anio:'');
+  try{
+    const res=await fetch(url);
+    const d=await res.json();
+    if(d.error)throw new Error(d.error);
+    mesesDisp=d.meses_disponibles||[];
+    if(mesIdx===0&&mesesDisp.length>0) mesIdx=mesesDisp.length-1;
+    renderDashboard(d);
+  }catch(e){
+    document.getElementById('kpiMain').innerHTML='<div class="loading" style="grid-column:1/-1;color:var(--red)">Error al cargar datos</div>';
+  }
+}
+
+function cambiarMes(dir){
+  mesIdx=Math.max(0,Math.min(mesesDisp.length-1,mesIdx+dir));
+  document.getElementById('btnPrev').disabled=mesIdx===0;
+  document.getElementById('btnNext').disabled=mesIdx===mesesDisp.length-1;
+  loadDashboard();
+}
+
+function renderDashboard(d){
+  // Update nav
+  document.getElementById('mesNombre').textContent=d.nombre_mes;
+  document.getElementById('mesAnio').textContent=d.anio;
+  document.getElementById('btnPrev').disabled=mesIdx===0;
+  document.getElementById('btnNext').disabled=mesIdx===mesesDisp.length-1;
+
+  // KPIs principales
+  document.getElementById('kpiMain').innerHTML=`
+    <div class="kpi highlight">
+      <div class="kpi-lbl">Ingresos</div>
+      <div class="kpi-val" style="color:var(--green)">$${fmt(d.ingresos.total)}</div>
+      <div class="kpi-sub">GDL $${fmt(d.ingresos.gdl)} · MTY $${fmt(d.ingresos.mty)}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Costos</div>
+      <div class="kpi-val" style="color:var(--red)">$${fmt(d.costos.total)}</div>
+      <div class="kpi-sub">Cajas + fletes</div>
+    </div>`;
+
+  document.getElementById('kpiSecundario').innerHTML=`
+    <div class="kpi">
+      <div class="kpi-lbl">Utilidad bruta</div>
+      <div class="kpi-val" style="color:${d.utilidad_bruta>=0?'var(--green)':'var(--red)'}">$${fmt(d.utilidad_bruta)}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Margen bruto</div>
+      <div class="kpi-val" style="color:${d.margen_bruto>=35?'var(--green)':d.margen_bruto>=25?'var(--amber)':'var(--red)'}">${d.margen_bruto.toFixed(1)}%</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Cajas totales</div>
+      <div class="kpi-val">${(d.cajas_por_dia||[]).reduce((s,r)=>s+r.gdl+r.mty,0)}</div>
+    </div>`;
+
+  // Proyeccion
+  const secProy=document.getElementById('secProy');
+  if(d.proyeccion){
+    secProy.style.display='block';
+    const p=d.proyeccion;
+    document.getElementById('proyBadge').textContent=p.avance_pct+'% del mes';
+    document.getElementById('proyGrid').innerHTML=`
+      <div class="proy-item"><div class="proy-val" style="color:var(--blue)">$${fmt(p.ingresos_proy)}</div><div class="proy-lbl">Ingresos proy.</div></div>
+      <div class="proy-item"><div class="proy-val" style="color:var(--red)">$${fmt(p.costos_proy)}</div><div class="proy-lbl">Costos proy.</div></div>
+      <div class="proy-item"><div class="proy-val" style="color:${p.utilidad_proy>=0?'var(--green)':'var(--red)'}">$${fmt(p.utilidad_proy)}</div><div class="proy-lbl">Utilidad proy. · ${p.margen_proy}%</div></div>`;
+    document.getElementById('proyDiasLabel').textContent='Día '+p.dias_operados+' de '+p.dias_habiles+' hábiles';
+    document.getElementById('proyPctLabel').textContent=p.avance_pct+'%';
+    document.getElementById('proyBar').style.width=p.avance_pct+'%';
+  } else {
+    secProy.style.display='none';
+  }
+
+  // Ingresos desglose
+  document.getElementById('ingrDesglose').innerHTML=`
+    <div class="card-row"><span class="card-label">GDL (×$600/caja)</span><span class="card-val" style="color:var(--blue)">$${fmt(d.ingresos.gdl)}</span></div>
+    <div class="card-row"><span class="card-label">MTY (×$750/caja)</span><span class="card-val" style="color:var(--green)">$${fmt(d.ingresos.mty)}</span></div>
+    <div class="card-row" style="background:rgba(61,214,140,.04)"><span class="card-label" style="font-weight:500;color:var(--text)">Total</span><span class="card-val" style="color:var(--green);font-size:15px">$${fmt(d.ingresos.total)}</span></div>`;
+
+  // Costos desglose
+  const tc=d.costos.total||1;
+  document.getElementById('costosDesglose').innerHTML=`
+    <div class="costo-row"><div class="costo-dot" style="background:var(--red)"></div><div class="costo-info"><div class="costo-nombre">Cajas (Autoexpress + Travisa)</div><div class="costo-pct">${Math.round(d.costos.cajas/tc*100)}% del total</div></div><div class="costo-val">$${fmt(d.costos.cajas)}</div></div>
+    <div class="costo-row"><div class="costo-dot" style="background:var(--amber)"></div><div class="costo-info"><div class="costo-nombre">Flete CDMX</div><div class="costo-pct">${Math.round(d.costos.fletes_cdmx/tc*100)}% del total</div></div><div class="costo-val">$${fmt(d.costos.fletes_cdmx)}</div></div>
+    <div class="costo-row"><div class="costo-dot" style="background:var(--purple)"></div><div class="costo-info"><div class="costo-nombre">Flete ciudad (GDL + MTY)</div><div class="costo-pct">${Math.round(d.costos.fletes_ciudad/tc*100)}% del total</div></div><div class="costo-val">$${fmt(d.costos.fletes_ciudad)}</div></div>
+    <div class="card-row" style="background:rgba(226,75,74,.04)"><span class="card-label" style="font-weight:500;color:var(--text)">Total costos</span><span class="card-val" style="color:var(--red);font-size:15px">$${fmt(d.costos.total)}</span></div>`;
+
+  // Cajas chart
+  const dias=d.cajas_por_dia||[];
+  document.getElementById('cajasTotal').textContent=dias.reduce((s,r)=>s+r.gdl+r.mty,0)+' cajas';
+  renderCajasChart(dias);
+
+  // Pagos semana
+  const pagos=d.pagos_semana||[];
+  const totalSem=pagos.reduce((s,p)=>s+p.total,0);
+  document.getElementById('pagosSemBadge').textContent='$'+fmt(totalSem)+' esta semana';
+  document.getElementById('pagosSemana').innerHTML=pagos.length?pagos.map(p=>{
+    const ini=p.nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const color=p.tipo==='CDMX'?'rgba(176,108,255,.15)':p.tipo==='GDL'?'rgba(74,158,255,.15)':'rgba(61,214,140,.15)';
+    const textC=p.tipo==='CDMX'?'#b06cff':p.tipo==='GDL'?'#4a9eff':'#3dd68c';
+    return `<div class="prov-row"><div class="prov-avatar" style="background:${color};color:${textC}">${ini}</div><div class="prov-info"><div class="prov-nombre">${p.nombre}</div><div class="prov-tipo">${p.servicios} servicio${p.servicios>1?'s':''} · ${p.tipo}</div></div><div class="prov-val">$${fmt(p.total)}</div></div>`;
+  }).join(''):'<div class="card-empty">Sin pagos esta semana</div>';
+}
+
+function renderCajasChart(dias){
+  if(chartCajas){chartCajas.destroy();chartCajas=null;}
+  if(!dias.length)return;
+  const ctx=document.getElementById('chartCajas');
+  chartCajas=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:dias.map(d=>d.fecha),
+      datasets:[
+        {label:'GDL',data:dias.map(d=>d.gdl),backgroundColor:'rgba(74,158,255,.8)',borderRadius:3,stack:'s'},
+        {label:'MTY',data:dias.map(d=>d.mty),backgroundColor:'rgba(61,214,140,.8)',borderRadius:3,stack:'s'}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw+' cajas'}}},
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:9},maxRotation:45,autoSkip:dias.length>15}},
+        y:{stacked:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#555',font:{size:9}},border:{display:false}}
+      }
+    }
+  });
+}
+
+function fmt(n){return Math.round(n).toLocaleString('es-MX');}
+</script>
+</body>
+</html>
