@@ -489,6 +489,7 @@ function checkPin(){
 function logout(){
   pin='';user=null;
   resetAllState();
+  sessionStorage.removeItem('xendz_fin');
   showScreen('pinScreen');
   dots();
 }
@@ -505,6 +506,19 @@ function login(u){
     document.getElementById('cdmxSub').textContent=ds+' · Flete CDMX';
     showScreen('cdmxScreen');
     loadStats('cdmx',u.nombre);
+    // Recuperar Finalizar pendiente si existe
+    const finPend = sessionStorage.getItem('xendz_fin');
+    if(finPend){
+      try{
+        const s=JSON.parse(finPend);
+        gdl=s.gdl||0; mty=s.mty||0;
+        document.getElementById('gdlN').textContent=gdl;
+        document.getElementById('mtyN').textContent=mty;
+        prepFinalizar();
+        showScreen('finalizarScreen');
+        toast('↩ Retomando finalización pendiente');
+      }catch(e){ sessionStorage.removeItem('xendz_fin'); }
+    }
   }else{
     setAvatar('ciudadAv',u);
     document.getElementById('ciudadUn').textContent=u.nombre.split(' ')[0];
@@ -596,14 +610,15 @@ async function enviarCDMX(){
   try{
     let filas=0;
     if(gdl>0){
-      const r=await apiPost({action:'registro',ciudad:'GDL',concepto:'MM',cantidad:gdl,cantidad_total:gdl+mty,incluir_cdmx:true,proveedor_cdmx:user.nombre,foto_recoleccion:fotoRec,fecha:new Date().toISOString()});
+      const r=await apiPost({action:'registro',ciudad:'GDL',concepto:'MM',cantidad:gdl,incluir_cdmx:true,proveedor_cdmx:user.nombre,foto_recoleccion:fotoRec,fecha:new Date().toISOString()});
       if(!r.ok)throw new Error(r.error);filas+=r.filas_escritas;
     }
     if(mty>0){
       const r=await apiPost({action:'registro',ciudad:'MTY',concepto:'MM',cantidad:mty,incluir_cdmx:gdl===0,proveedor_cdmx:user.nombre,foto_recoleccion:gdl===0?fotoRec:null,fecha:new Date().toISOString()});
       if(!r.ok)throw new Error(r.error);filas+=r.filas_escritas;
     }
-    // Transition to finalizar
+    // Guardar estado pendiente en sessionStorage
+    sessionStorage.setItem('xendz_fin', JSON.stringify({gdl, mty}));
     setLoad('cdmx',false);
     prepFinalizar();
     showScreen('finalizarScreen');
@@ -643,6 +658,7 @@ async function enviarFinalizar(){
     if(mty>0)guias.push({ciudad:'MTY',cajas:mty,costo:cMTY,foto_guia:fotoGuiaMTY});
     const r=await apiPost({action:'finalizar',proveedor_cdmx:user.nombre,guias,fecha:new Date().toISOString()});
     if(!r.ok)throw new Error(r.error);
+    sessionStorage.removeItem('xendz_fin');
     showSuccess('¡Servicio finalizado!','Las guías ya están disponibles para\nJose Luis y Rosa Imelda.',[
       ['GDL',gdl>0?gdl+' cajas · $'+fmt(cGDL):'—'],
       ['MTY',mty>0?mty+' cajas · $'+fmt(cMTY):'—'],
